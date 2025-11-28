@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status – PATCHED.cc</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="/patched.cc.png" type="image/png">
+
+    <style>
+        body { margin:0; padding:0; font-family: 'Fira Mono', monospace; color:#33ff33; background:#000; }
+
+        .status-box {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px auto;
+            background: rgba(0,0,0,0.65);
+            border: 1px solid #0f0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .service {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dotted #064b06;
+        }
+
+        .service:last-child {
+            border-bottom: none;
+        }
+
+        .status {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .up {
+            color:#00e676;
+            border:1px solid #00e676;
+            text-shadow:0 0 6px #00e676;
+        }
+
+        .down {
+            color:#ff1744;
+            border:1px solid #ff1744;
+            text-shadow:0 0 6px #ff1744;
+        }
+
+        .terminal-header {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            color: #33ff33;
+        }
+    </style>
+</head>
+
+<body>
+
+<canvas id="matrix-bg" style="background:#000; position:fixed; top:0; left:0; width:100%; height:100%; z-index:-1;"></canvas>
+
+<div class="terminal">
+    <div class="terminal-titlebar">
+        <div class="window-buttons">
+            <div class="window-btn red"></div>
+            <div class="window-btn yellow"></div>
+            <div class="window-btn green"></div>
+        </div>
+        <span class="terminal-title">PATCHED.cc Status</span>
+        <nav style="margin-left:auto;display:flex;gap:18px;align-items:center;">
+            <a href="index.html" class="top-terminal">Home</a>
+        </nav>
+    </div>
+
+    <div class="terminal-content" style="display:flex;flex-direction:column;align-items:center;">
+        <div class="terminal-output">user@patched.cc:~$ status</div>
+        <div class="terminal-header">System Status</div>
+
+        <div class="status-box">
+
+            <div class="service" data-url="https://patched.cc">
+                <span>MAIN WEBSITE</span>
+                <span class="status">Checking…</span>
+            </div>
+
+            <div class="service" data-url="https://deadlist.patched.cc">
+                <span>DEADLIST PAGE</span>
+                <span class="status">Checking…</span>
+            </div>
+
+            <div class="service" data-url="https://browser.patched.cc">
+                <span>BROWSER</span>
+                <span class="status">Checking…</span>
+            </div>
+
+            <div class="service" data-url="https://socials.patched.cc">
+                <span>SOCIALS</span>
+                <span class="status">Checking…</span>
+            </div>
+
+            <div class="service" data-url="https://patched.cc">
+                <span>MAIN WEBSITE</span>
+                <span class="status">Checking…</span>
+            </div>
+
+            <div class="service" data-url="https://api.patched.cc/busproject/zielonagora_bus_data.json">
+                <span>BUS API</span>
+                <span class="status">Checking…</span>
+            </div>
+
+        </div>
+
+        <div style="margin-top:10px; color:#0f0;">Automatic checks every 6 seconds</div>
+    </div>
+</div>
+
+<footer>
+    &copy; 2025 PATCHED.cc – Status Monitor
+</footer>
+
+<script>
+// ---- MATRIX BACKGROUND (from main.html, untouched) ----
+const letters = "PATCHED.CC".split("");
+const canvas = document.getElementById("matrix-bg");
+const ctx = canvas.getContext("2d");
+let width = window.innerWidth;
+let height = window.innerHeight;
+canvas.width = width;
+canvas.height = height;
+let fontSize = 15;
+let columns = Math.floor(width / fontSize);
+let drops = Array(columns).fill(1);
+let dropDelays = Array(columns).fill(0).map(() => Math.floor(Math.random() * 40));
+
+function drawMatrix() {
+    ctx.globalAlpha = 0.18;
+    ctx.fillStyle = "#000";
+    ctx.fillRect(0, 0, width, height);
+    ctx.globalAlpha = 1;
+    ctx.font = fontSize + "px 'Fira Mono', monospace";
+    ctx.fillStyle = "#33ff33";
+
+    for (let i = 0; i < columns; i++) {
+        if (dropDelays[i] > 0) { dropDelays[i]--; continue; }
+        let text = letters[Math.floor(Math.random() * letters.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        if (Math.random() > 0.975) {
+            drops[i] = 0;
+            dropDelays[i] = Math.floor(Math.random() * 40);
+        }
+
+        drops[i]++;
+        if (drops[i] * fontSize > height) {
+            drops[i] = 0;
+            dropDelays[i] = Math.floor(Math.random() * 40);
+        }
+    }
+}
+setInterval(drawMatrix, 50);
+
+
+// ---- STATUS CHECK LOGIC ----
+async function checkService(el) {
+    const url = el.getAttribute("data-url");
+    const statusEl = el.querySelector(".status");
+
+    try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 4000);
+
+        const res = await fetch(url, { method: "GET", signal: controller.signal });
+
+        if (res.ok) {
+            statusEl.textContent = "UP";
+            statusEl.className = "status up";
+        } else {
+            statusEl.textContent = "DOWN";
+            statusEl.className = "status down";
+        }
+    } catch (e) {
+        statusEl.textContent = "DOWN";
+        statusEl.className = "status down";
+    }
+}
+
+function checkAll() {
+    document.querySelectorAll(".service").forEach(service => checkService(service));
+}
+
+checkAll();
+setInterval(checkAll, 6000);
+</script>
+
+</body>
+</html>
